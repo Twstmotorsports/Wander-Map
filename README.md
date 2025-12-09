@@ -92,7 +92,7 @@ npm install
 
 ## License
 
-Choose a license and replace this line. Example: MIT © Twstmotorsports
+MIT © Twstmotorsports
 
 ## Contact
 
@@ -100,6 +100,7 @@ email: jsperdido20@gmail.com
 
 Maintainer: Twstmotorsports
 - Repo: https://github.com/Twstmotorsports/Wander-Map
+
 
 
 
