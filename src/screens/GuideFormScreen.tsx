@@ -6,7 +6,10 @@ import { Guide, GuideFormMode } from '../types';
 export type GuideFormProps = {
   mode: GuideFormMode;
   initialGuide: Guide | null;
-  onSave: (mode: GuideFormMode, data: Omit<Guide, 'id'>) => void | Promise<void>;
+  onSave: (
+    mode: GuideFormMode,
+    data: Omit<Guide, 'id' | 'userId'>
+  ) => void | Promise<void>;
   onCancel: () => void;
   onDelete?: () => void | Promise<void>;
 };
@@ -25,6 +28,7 @@ export const GuideFormScreen: React.FC<GuideFormProps> = ({
   const [photoUrls, setPhotoUrls] = useState<string[]>(
     initialGuide?.photoUrls ?? []
   );
+  const [error, setError] = useState<string | null>(null);
 
   const handleAddPhotoUrl = () => {
     const value = photoUrlInput.trim();
@@ -36,13 +40,31 @@ export const GuideFormScreen: React.FC<GuideFormProps> = ({
   };
 
   const handleSave = () => {
-    if (!title.trim()) {
+    setError(null);
+
+    const trimmedTitle = title.trim();
+    const trimmedLocation = location.trim();
+    const trimmedContent = content.trim();
+
+    if (!trimmedTitle) {
+      setError('Title is required.');
       return;
     }
+
+    if (!trimmedLocation) {
+      setError('Location is required.');
+      return;
+    }
+
+    if (!trimmedContent) {
+      setError('Guide content cannot be empty.');
+      return;
+    }
+
     onSave(mode, {
-      title: title.trim(),
-      location: location.trim(),
-      content: content.trim(),
+      title: trimmedTitle,
+      location: trimmedLocation,
+      content: trimmedContent,
       photoUrls,
     });
   };
@@ -51,6 +73,7 @@ export const GuideFormScreen: React.FC<GuideFormProps> = ({
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.formContainer}
+      keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title}>
         {mode === 'create' ? 'New Travel Guide' : 'Edit Travel Guide'}
@@ -103,6 +126,7 @@ export const GuideFormScreen: React.FC<GuideFormProps> = ({
           </ScrollView>
         </View>
       )}
+      {error && <Text style={styles.formErrorText}>{error}</Text>}
       <TouchableOpacity style={styles.primaryButton} onPress={handleSave}>
         <Text style={styles.primaryButtonText}>Save Guide</Text>
       </TouchableOpacity>

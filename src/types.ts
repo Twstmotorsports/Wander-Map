@@ -10,6 +10,7 @@ export type Screen =
 
 export type Trip = {
   id: string;
+  userId: string;
   destination: string;
   startDate: string;
   endDate: string;
@@ -19,6 +20,7 @@ export type Trip = {
 
 export type Guide = {
   id: string;
+  userId: string;
   title: string;
   location: string;
   content: string;

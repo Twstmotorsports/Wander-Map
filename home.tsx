@@ -1,6 +1,7 @@
 // home.tsx
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Screen,
@@ -18,22 +19,45 @@ import { GuideFormScreen } from './src/screens/GuideFormScreen';
 import { GuideListScreen } from './src/screens/GuideListScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { SearchScreen } from './src/screens/SearchScreen';
-import { db } from './src/firebaseConfig';
+import { useTrips } from './src/hooks/useTrips';
+import { useGuides } from './src/hooks/useGuides';
 import {
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-} from 'firebase/firestore';
+  createTripForUser,
+  updateTrip,
+  deleteTrip,
+} from './src/services/tripService';
+import {
+  createGuideForUser,
+  updateGuide,
+  deleteGuide,
+} from './src/services/guideService';
+import { useAppTheme } from './src/theme';
 
-export default function HomeApp() {
+type HomeAppProps = {
+  userId: string;
+  userEmail?: string | null;
+  onLogout?: () => void;
+};
+
+export default function HomeApp({ userId, userEmail, onLogout }: HomeAppProps) {
   const [currentScreen, setCurrentScreen] = useState<Screen>('HOME');
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [guides, setGuides] = useState<Guide[]>([]);
   const [editingTripId, setEditingTripId] = useState<string | null>(null);
   const [editingGuideId, setEditingGuideId] = useState<string | null>(null);
+  const {
+    trips,
+    isLoading: tripsLoading,
+    error: tripsError,
+  } = useTrips(userId);
+  const {
+    guides,
+    isLoading: guidesLoading,
+    error: guidesError,
+  } = useGuides(userId);
+
+  const isLoading = tripsLoading || guidesLoading;
+  const loadError = tripsError || guidesError;
+
+  const theme = useAppTheme();
 
   const currentEditingTrip = editingTripId
     ? trips.find((trip) => trip.id === editingTripId) ?? null
@@ -41,30 +65,6 @@ export default function HomeApp() {
   const currentEditingGuide = editingGuideId
     ? guides.find((guide) => guide.id === editingGuideId) ?? null
     : null;
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const tripsSnapshot = await getDocs(collection(db, 'trips'));
-        const loadedTrips: Trip[] = tripsSnapshot.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<Trip, 'id'>),
-        }));
-        setTrips(loadedTrips);
-
-        const guidesSnapshot = await getDocs(collection(db, 'guides'));
-        const loadedGuides: Guide[] = guidesSnapshot.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<Guide, 'id'>),
-        }));
-        setGuides(loadedGuides);
-      } catch (error) {
-        console.error('Error loading data from Firestore:', error);
-      }
-    };
-
-    loadData();
-  }, []);
 
   const openCreateTrip = () => {
     setEditingTripId(null);
@@ -78,24 +78,13 @@ export default function HomeApp() {
 
   const handleSaveTrip = async (
     mode: TripFormMode,
-    data: Omit<Trip, 'id'>
+    data: Omit<Trip, 'id' | 'userId'>
   ) => {
     try {
       if (mode === 'create') {
-        const docRef = await addDoc(collection(db, 'trips'), data);
-        const newTrip: Trip = {
-          id: docRef.id,
-          ...data,
-        };
-        setTrips((prev) => [...prev, newTrip]);
+        await createTripForUser(userId, data);
       } else if (mode === 'edit' && editingTripId) {
-        const tripRef = doc(db, 'trips', editingTripId);
-        await updateDoc(tripRef, data);
-        setTrips((prev) =>
-          prev.map((trip) =>
-            trip.id === editingTripId ? { ...trip, ...data } : trip
-          )
-        );
+        await updateTrip(editingTripId, data);
       }
       setCurrentScreen('TRIP_LIST');
     } catch (error) {
@@ -109,8 +98,7 @@ export default function HomeApp() {
         setCurrentScreen('TRIP_LIST');
         return;
       }
-      await deleteDoc(doc(db, 'trips', editingTripId));
-      setTrips((prev) => prev.filter((trip) => trip.id !== editingTripId));
+      await deleteTrip(editingTripId);
       setEditingTripId(null);
       setCurrentScreen('TRIP_LIST');
     } catch (error) {
@@ -120,24 +108,13 @@ export default function HomeApp() {
 
   const handleSaveGuide = async (
     mode: GuideFormMode,
-    data: Omit<Guide, 'id'>
+    data: Omit<Guide, 'id' | 'userId'>
   ) => {
     try {
       if (mode === 'create') {
-        const docRef = await addDoc(collection(db, 'guides'), data);
-        const newGuide: Guide = {
-          id: docRef.id,
-          ...data,
-        };
-        setGuides((prev) => [...prev, newGuide]);
+        await createGuideForUser(userId, data);
       } else if (mode === 'edit' && editingGuideId) {
-        const guideRef = doc(db, 'guides', editingGuideId);
-        await updateDoc(guideRef, data);
-        setGuides((prev) =>
-          prev.map((guide) =>
-            guide.id === editingGuideId ? { ...guide, ...data } : guide
-          )
-        );
+        await updateGuide(editingGuideId, data);
       }
       setCurrentScreen('GUIDE_LIST');
     } catch (error) {
@@ -151,8 +128,7 @@ export default function HomeApp() {
         setCurrentScreen('GUIDE_LIST');
         return;
       }
-      await deleteDoc(doc(db, 'guides', editingGuideId));
-      setGuides((prev) => prev.filter((guide) => guide.id !== editingGuideId));
+      await deleteGuide(editingGuideId);
       setEditingGuideId(null);
       setCurrentScreen('GUIDE_LIST');
     } catch (error) {
@@ -251,7 +227,18 @@ export default function HomeApp() {
       />
     );
   } else if (currentScreen === 'PROFILE') {
-    content = <ProfileScreen onBack={openHome} />;
+    content = (
+      <ProfileScreen
+        userId={userId}
+        onBack={openHome}
+        onLogout={onLogout}
+        userEmail={userEmail}
+        trips={trips}
+        guides={guides}
+        onOpenTrip={openTripForEdit}
+        onOpenGuide={openGuideForEdit}
+      />
+    );
   } else if (currentScreen === 'SEARCH') {
     content = (
       <SearchScreen
@@ -265,9 +252,49 @@ export default function HomeApp() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
-      {content}
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
+      <StatusBar style={theme.statusBarStyle} />
+      {isLoading ? (
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+        >
+          <ActivityIndicator color={theme.primary} />
+          {loadError && (
+            <Text
+              style={{
+                marginTop: 8,
+                color: '#B91C1C',
+                fontSize: 13,
+                textAlign: 'center',
+                paddingHorizontal: 24,
+              }}
+            >
+              {loadError}
+            </Text>
+          )}
+        </View>
+      ) : (
+        <>
+          {loadError && (
+            <View
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                backgroundColor: '#FEE2E2',
+              }}
+            >
+              <Text
+                style={{ color: '#B91C1C', fontSize: 13, textAlign: 'center' }}
+              >
+                {loadError}
+              </Text>
+            </View>
+          )}
+          {content}
+        </>
+      )}
     </SafeAreaView>
   );
 }

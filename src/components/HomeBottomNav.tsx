@@ -27,7 +27,7 @@ export const HomeBottomNav: React.FC<HomeBottomNavProps> = ({
         <Text style={styles.navCenterIcon}>＋</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem} onPress={onSearch}>
-        <Text style={styles.navItemIcon}>🗺️</Text>
+        <Text style={styles.navItemIcon}>🔍</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem} onPress={onProfile}>
         <Text style={styles.navItemIcon}>👤</Text>

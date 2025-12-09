@@ -7,7 +7,10 @@ import { getCountryFlag } from '../countryFlags';
 export type TripFormProps = {
   mode: TripFormMode;
   initialTrip: Trip | null;
-  onSave: (mode: TripFormMode, data: Omit<Trip, 'id'>) => void | Promise<void>;
+  onSave: (
+    mode: TripFormMode,
+    data: Omit<Trip, 'id' | 'userId'>
+  ) => void | Promise<void>;
   onCancel: () => void;
   onDelete?: () => void | Promise<void>;
 };
@@ -27,6 +30,7 @@ export const TripFormScreen: React.FC<TripFormProps> = ({
   const [activities, setActivities] = useState<string[]>(
     initialTrip?.activities ?? []
   );
+  const [error, setError] = useState<string | null>(null);
 
   const handleAddActivity = () => {
     const value = activityInput.trim();
@@ -38,14 +42,28 @@ export const TripFormScreen: React.FC<TripFormProps> = ({
   };
 
   const handleSave = () => {
-    if (!destination.trim()) {
+    setError(null);
+
+    const trimmedCountry = country.trim();
+    const trimmedDestination = destination.trim();
+    const trimmedStart = startDate.trim();
+    const trimmedEnd = endDate.trim();
+
+    if (!trimmedDestination) {
+      setError('Destination is required.');
       return;
     }
+
+    if (trimmedStart && trimmedEnd && trimmedStart > trimmedEnd) {
+      setError('Start date must be before end date.');
+      return;
+    }
+
     onSave(mode, {
-      country: country.trim(),
-      destination: destination.trim(),
-      startDate: startDate.trim(),
-      endDate: endDate.trim(),
+      country: trimmedCountry,
+      destination: trimmedDestination,
+      startDate: trimmedStart,
+      endDate: trimmedEnd,
       activities,
     });
   };
@@ -56,6 +74,7 @@ export const TripFormScreen: React.FC<TripFormProps> = ({
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.formContainer}
+      keyboardShouldPersistTaps="handled"
     >
       {flag && (
         <View style={styles.countryHero}>
@@ -114,6 +133,7 @@ export const TripFormScreen: React.FC<TripFormProps> = ({
           ))}
         </View>
       )}
+      {error && <Text style={styles.formErrorText}>{error}</Text>}
       <TouchableOpacity style={styles.primaryButton} onPress={handleSave}>
         <Text style={styles.primaryButtonText}>Save Trip Plan</Text>
       </TouchableOpacity>

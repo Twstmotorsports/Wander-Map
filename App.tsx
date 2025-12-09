@@ -1,5 +1,5 @@
 // App.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,12 @@ import { auth, db } from './src/firebaseConfig';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import HomeApp from './home';
+import { useAppTheme } from './src/theme';
 
 export default function App() {
   const [showAuth, setShowAuth] = useState(false);
@@ -27,6 +30,28 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  const theme = useAppTheme();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsAuthenticated(true);
+        setCurrentUserId(user.uid);
+        setCurrentUserEmail(user.email ?? null);
+      } else {
+        setIsAuthenticated(false);
+        setCurrentUserId(null);
+        setCurrentUserEmail(null);
+      }
+      setIsAuthReady(true);
+    });
+
+    return unsubscribe;
+  }, []);
 
   const handleOpenAuth = () => {
     setShowAuth(true);
@@ -68,11 +93,9 @@ export default function App() {
         });
 
         setSuccessMessage('Account created. You are now signed in.');
-        setIsAuthenticated(true);
       } else {
         await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
         setSuccessMessage('Logged in successfully.');
-        setIsAuthenticated(true);
       }
     } catch (error: any) {
       setErrorMessage(error?.message ?? 'Authentication error.');
@@ -81,24 +104,46 @@ export default function App() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    }
+  };
+
   // After login/sign-up, show the main Wander-Map app from home.tsx
-  if (isAuthenticated) {
-    return <HomeApp />;
+  if (!isAuthReady) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <ActivityIndicator color={theme.primary} />
+      </View>
+    );
+  }
+
+  if (isAuthenticated && currentUserId) {
+    return (
+      <HomeApp
+        userId={currentUserId}
+        userEmail={currentUserEmail}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.iconContainer}
           onPress={handleOpenAuth}
           activeOpacity={0.8}
         >
-          <MaterialIcons name="map" size={48} color="#4f46e5" />
+          <MaterialIcons name="map" size={48} color={theme.primary} />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Wander-Map</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: theme.primary }]}>Wander-Map</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
           Plan your trips and travel guides in one place
         </Text>
       </View>
@@ -221,13 +266,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#4f46e5',
+    color: '#F97316',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#7c3aed',
+    color: '#6B7280',
     textAlign: 'center',
   },
   authCard: {
@@ -254,7 +299,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   authTabActive: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#F97316',
   },
   authTabText: {
     fontSize: 14,
@@ -280,7 +325,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     height: 46,
     borderRadius: 12,
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#F97316',
     alignItems: 'center',
     justifyContent: 'center',
   },
