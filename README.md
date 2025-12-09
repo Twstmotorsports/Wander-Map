@@ -21,9 +21,9 @@ This README is a starting point — replace any placeholder settings (API keys, 
 
 Update these to match your repository's actual stack.
 
-- Frontend: React / Vue / Svelte (example: React) + Leaflet or Mapbox GL
-- Backend: Node.js + Express (optional)
-- Data: Flat files, SQLite, or a hosted DB / Firebase
+- Frontend: React Expo 
+- Backend: Node.js 
+- Data: Firebase
 - Build: npm / yarn
 
 ## Quick start (development)
@@ -121,5 +121,6 @@ Choose a license and replace this line. Example: MIT © Twstmotorsports
 
 Maintainer: Twstmotorsports
 - Repo: https://github.com/Twstmotorsports/Wander-Map
+
 
 
