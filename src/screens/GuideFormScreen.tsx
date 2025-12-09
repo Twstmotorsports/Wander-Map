@@ -6,9 +6,9 @@ import { Guide, GuideFormMode } from '../types';
 export type GuideFormProps = {
   mode: GuideFormMode;
   initialGuide: Guide | null;
-  onSave: (mode: GuideFormMode, data: Omit<Guide, 'id'>) => void;
+  onSave: (mode: GuideFormMode, data: Omit<Guide, 'id'>) => void | Promise<void>;
   onCancel: () => void;
-  onDelete?: () => void;
+  onDelete?: () => void | Promise<void>;
 };
 
 export const GuideFormScreen: React.FC<GuideFormProps> = ({

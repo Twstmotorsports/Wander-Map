@@ -7,9 +7,9 @@ import { getCountryFlag } from '../countryFlags';
 export type TripFormProps = {
   mode: TripFormMode;
   initialTrip: Trip | null;
-  onSave: (mode: TripFormMode, data: Omit<Trip, 'id'>) => void;
+  onSave: (mode: TripFormMode, data: Omit<Trip, 'id'>) => void | Promise<void>;
   onCancel: () => void;
-  onDelete?: () => void;
+  onDelete?: () => void | Promise<void>;
 };
 
 export const TripFormScreen: React.FC<TripFormProps> = ({
